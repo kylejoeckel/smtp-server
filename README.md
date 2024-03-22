@@ -1,167 +1,106 @@
-<!--
-title: 'Serverless Framework Python Flask API backed by DynamoDB on AWS'
-description: 'This template demonstrates how to develop and deploy a simple Python Flask API service backed by DynamoDB running on AWS Lambda using the traditional Serverless Framework.'
-layout: Doc
-framework: v3
-platform: AWS
-language: Python
-priority: 2
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
 
-# Serverless Framework Python Flask API service backed by DynamoDB on AWS
+# Email SMTP Server
 
-This template demonstrates how to develop and deploy a simple Python Flask API service, backed by DynamoDB, running on AWS Lambda using the traditional Serverless Framework.
+General email smtp server for sending emails such as a contact form
 
+## Getting Started
 
-## Anatomy of the template
-
-This template configures a single function, `api`, which is responsible for handling all incoming requests thanks to configured `httpApi` events. To learn more about `httpApi` event configuration options, please refer to [httpApi event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/). As the events are configured in a way to accept all incoming requests, `Flask` framework is responsible for routing and handling requests internally. The implementation takes advantage of `serverless-wsgi`, which allows you to wrap WSGI applications such as Flask apps. To learn more about `serverless-wsgi`, please refer to corresponding [GitHub repository](https://github.com/logandk/serverless-wsgi). The template also relies on `serverless-python-requirements` plugin for packaging dependencies from `requirements.txt` file. For more details about `serverless-python-requirements` configuration, please refer to corresponding [GitHub repository](https://github.com/UnitedIncome/serverless-python-requirements).
-
-Additionally, the template also handles provisioning of a DynamoDB database that is used for storing data about users. The Flask application exposes two endpoints, `POST /users` and `GET /user/{userId}`, which allow to create and retrieve users.
-
-## Usage
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
 
-In order to package your dependencies locally with `serverless-python-requirements`, you need to have `Python3.9` installed locally. You can create and activate a dedicated virtual environment with the following command:
+What things you need to install the software and how to install them. For example:
+
+- Python 3.8+
+- Serverless Framework
+- Any other dependencies
 
 ```bash
-python3.9 -m venv ./venv
-source ./venv/bin/activate
+npm install -g serverless
 ```
 
-Alternatively, you can also use `dockerizePip` configuration from `serverless-python-requirements`. For details on that, please refer to corresponding [GitHub repository](https://github.com/UnitedIncome/serverless-python-requirements).
+### Installing
 
-### Deployment
+A step-by-step series of examples that tell you how to get a development environment running.
 
-This example is made to work with the Serverless Framework dashboard, which includes advanced features such as CI/CD, monitoring, metrics, etc.
-
-In order to deploy with dashboard, you need to first login with:
-
-```
-serverless login
-```
-
-install dependencies with:
-
-```
-npm install
-```
-
-and then perform deployment with:
-
-```
-serverless deploy
-```
-
-After running deploy, you should see output similar to:
+1. Clone the repository
 
 ```bash
-Deploying aws-python-flask-dynamodb-api-project to stage dev (us-east-1)
-
-✔ Service deployed to stack aws-python-flask-dynamodb-api-project-dev (182s)
-
-endpoint: ANY - https://xxxxxxxx.execute-api.us-east-1.amazonaws.com
-functions:
-  api: aws-python-flask-dynamodb-api-project-dev-api (1.5 MB)
+git clone https://yourrepositorylink.com
+cd your-project-directory
 ```
 
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [httpApi event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/).
-
-### Invocation
-
-After successful deployment, you can create a new user by calling the corresponding endpoint:
+2. Create and activate a virtual environment
 
 ```bash
-curl --request POST 'https://xxxxxx.execute-api.us-east-1.amazonaws.com/users' --header 'Content-Type: application/json' --data-raw '{"name": "John", "userId": "someUserId"}'
+python3 -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 ```
 
-Which should result in the following response:
+3. Install the required Python packages
 
 ```bash
-{"userId":"someUserId","name":"John"}
-```
-
-You can later retrieve the user by `userId` by calling the following endpoint:
-
-```bash
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/users/someUserId
-```
-
-Which should result in the following response:
-
-```bash
-{"userId":"someUserId","name":"John"}
-```
-
-If you try to retrieve user that does not exist, you should receive the following response:
-
-```bash
-{"error":"Could not find user with provided \"userId\""}
-```
-
-### Local development
-
-Thanks to capabilities of `serverless-wsgi`, it is also possible to run your application locally, however, in order to do that, you will need to first install `werkzeug`, `boto3` dependencies, as well as all other dependencies listed in `requirements.txt`. It is recommended to use a dedicated virtual environment for that purpose. You can install all needed dependencies with the following commands:
-
-```bash
-pip install werkzeug boto3
 pip install -r requirements.txt
 ```
 
-Additionally, you will need to emulate DynamoDB locally, which can be done by using `serverless-dynamodb-local` plugin. In order to do that, execute the following commands:
+4. Set up environment variables
+
+Copy the `.env.example` to `.env` and adjust the values to match your setup.
 
 ```bash
-serverless plugin install -n serverless-dynamodb-local
-serverless dynamodb install
+cp .env.example .env
 ```
 
-It will add the plugin to `devDependencies` in `package.json` file as well as to `plugins` section in `serverless.yml`. Additionally, it will also install DynamoDB locally.
+## Deployment
 
-You should also add the following config to `custom` section in `serverless.yml`:
+Instructions on how to deploy the project on a live system. This could vary widely between Serverless applications, but a general approach would be:
 
-
-```yml
-custom:
-  (...)
-  dynamodb:
-    start:
-      migrate: true
-    stages:
-      - dev
+```bash
+serverless deploy
 ```
 
-Additionally, we need to reconfigure DynamoDB Client to connect to our local instance of DynamoDB. We can take advantage of `IS_OFFLINE` environment variable set by `serverless-wsgi` plugin and replace:
+### Unit Tests
 
+To run unit tests, you can use the following command:
+
+```bash
+python -m unittest discover tests
+```
+
+Or to run a specific test file:
+
+```bash
+python -m unittest tests/test_email_functions.py
+```
+
+## Usage
 
 ```python
-dynamodb_client = boto3.client('dynamodb')
+# Example of using the API to send an email
+import requests
+
+response = requests.post("https://your-api-endpoint.com/send_email", json={
+    "from_address": "sender@example.com",
+    "to_address": "recipient@example.com",
+    "subject": "Hello",
+    "body": "Hello, world!",
+    "smtp_server": "smtp.example.com",
+    "smtp_port": 587,
+    "smtp_username": "user",
+    "smtp_password": "password"
+})
+
+print(response.json())
 ```
 
-with
+## Built With
 
-```python
-dynamodb_client = boto3.client('dynamodb')
+List the major frameworks/libraries used to bootstrap your project. For example:
 
-if os.environ.get('IS_OFFLINE'):
-    dynamodb_client = boto3.client('dynamodb', region_name='localhost', endpoint_url='http://localhost:8000')
-```
+- [Serverless Framework](https://www.serverless.com/) - The web framework used
+- [Python](https://python.org/) - Programming language
 
-Now you can start DynamoDB local with the following command:
+## Authors
 
-```bash
-serverless dynamodb start
-```
+* **Kyle Joeckel** - *Initial work* - [kylejoeckel](https://github.com/kylejoeckel)
 
-At this point, you can run your application locally with the following command:
-
-```bash
-serverless wsgi serve
-```
-
-For additional local development capabilities of `serverless-wsgi` and `serverless-dynamodb-local` plugins, please refer to corresponding GitHub repositories:
-- https://github.com/logandk/serverless-wsgi 
-- https://github.com/99x/serverless-dynamodb-local

@@ -1,55 +1,83 @@
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import json
-import smtplib
-
-def create_smtp_client(smtp_server, smtp_port, smtp_username, smtp_password):
-    try:
-        smtp_client = smtplib.SMTP(smtp_server, smtp_port)
-        smtp_client.starttls()  # Upgrade the connection to SSL/TLS
-        smtp_client.login(smtp_username, smtp_password)
-        return smtp_client
-    except Exception as e:
-        raise ConnectionError(f"Failed to connect and log in to SMTP server: {e}")
-
-def construct_email(from_address, to_address, subject, body):
-    message = MIMEMultipart()
-    message['From'] = from_address
-    message['To'] = to_address
-    message['Subject'] = subject
-    message.attach(MIMEText(body, 'plain'))
-    return message
+import boto3
+from botocore.exceptions import ClientError
 
 def validate_data(data):
-    required_fields = ['from_address', 'to_address', 'subject', 'body', 'smtp_server', 'smtp_port', 'smtp_username', 'smtp_password']
+    required_fields = ['from_address', 'to_address', 'subject', 'body']
     if not all(field in data and data[field] for field in required_fields):
         missing = [field for field in required_fields if field not in data or not data[field]]
         raise ValueError(f"Missing required parameters: {', '.join(missing)}")
 
+def send_email_via_ses(from_address, to_address, subject, body, region='us-east-1'):
+    """
+    Sends an email using Amazon SES.
+    
+    :param from_address: Email address of the sender
+    :param to_address: Email address of the recipient
+    :param subject: Subject of the email
+    :param body: Body of the email
+    :param region: AWS region for the SES service
+    :return: SES send_email response
+    """
+    client = boto3.client('ses', region_name=region)
+    response = client.send_email(
+        Destination={
+            'ToAddresses': [to_address],
+        },
+        Message={
+            'Body': {
+                'Text': {
+                    'Charset': "UTF-8",
+                    'Data': body,
+                },
+            },
+            'Subject': {
+                'Charset': "UTF-8",
+                'Data': subject,
+            },
+        },
+        Source=from_address,
+    )
+    return response
+
 def send_email(request, context):
     try:
-        data = json.loads(request['body'])
+        data = request['body']
         validate_data(data)
         
-        smtp_client = create_smtp_client(data['smtp_server'], data['smtp_port'], data['smtp_username'], data['smtp_password'])
-        message = construct_email(data['from_address'], data['to_address'], data['subject'], data['body'])
-
-        smtp_client.send_message(message)
-        smtp_client.quit()
-
+        # Send the email via SES
+        response = send_email_via_ses(
+            from_address=data['from_address'],
+            to_address=data['to_address'],
+            subject=data['subject'],
+            body=data['body']
+        )
+        
+        # Provide a response
         return {
             "statusCode": 200,
             "headers": {
-                "Content-Type": "application/json"
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": True,
             },
-            "body": json.dumps({"message": "Email sent succesfully"})
+            "body": json.dumps({"message": "Email sent successfully", "response": response})
         }
 
+    except ClientError as e:
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": True,
+            },
+            "body": json.dumps({"error": e.response['Error']['Message']})
+        }
     except Exception as e:
         return {
             "statusCode": 500,
             "headers": {
-                "Content-Type": "application/json"
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": True,
             },
-            "body": json.dumps({'error': str(e)})
+            "body": json.dumps({"error": str(e)})
         }
