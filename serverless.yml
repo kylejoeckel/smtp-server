@@ -28,13 +28,18 @@ provider:
 
 functions:
   api:
-    handler: wsgi_handler.handler
+    timeout: 60
+    handler: handlers/send_email.send_email
     events:
-      - httpApi: '*'
+      - http: 
+          path: '/send_email'
+          method: post
+          cors: true
 
 plugins:
   - serverless-wsgi
   - serverless-python-requirements
+  - serverless-offline
 
 resources:
   Resources:
